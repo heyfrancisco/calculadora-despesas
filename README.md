@@ -1,41 +1,65 @@
-<<<<<<< HEAD
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Calculadora de Despesas para Casais
 
-## Getting Started
+Uma aplicação web moderna para ajudar casais a gerenciar e dividir suas despesas mensais de forma justa e transparente.
 
-First, run the development server:
+## Funcionalidades
 
+- 💰 Cálculo de despesas fixas (água, luz, internet, etc.)
+- 🛒 Gestão de despesas de supermercado
+- 🎭 Despesas de lazer personalizáveis
+- ⚖️ Múltiplos métodos de divisão:
+  - Proporcional aos rendimentos
+  - Fixo + Supermercado (50/50)
+  - Um parceiro assume todas as despesas
+- 📊 Percentagens ajustáveis para despesas de lazer
+- ➕ Adicione e remova categorias de despesas de lazer
+
+## Tecnologias Utilizadas
+
+- [Next.js 14](https://nextjs.org/)
+- [React](https://reactjs.org/)
+- [TypeScript](https://www.typescriptlang.org/)
+- [Tailwind CSS](https://tailwindcss.com/)
+- [Shadcn/ui](https://ui.shadcn.com/)
+
+## Começando
+
+1. Clone o repositório:
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+git clone https://github.com/heyfrancisco/calculadora-despesas.git
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+2. Instale as dependências:
+```bash
+npm install
+# ou
+yarn install
+```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+3. Inicie o servidor de desenvolvimento:
+```bash
+npm run dev
+# ou
+yarn dev
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+4. Abra [http://localhost:3000](http://localhost:3000) no seu navegador.
 
-## Learn More
+## Como Usar
 
-To learn more about Next.js, take a look at the following resources:
+1. Insira os rendimentos mensais de ambos os parceiros
+2. Adicione as despesas fixas mensais
+3. Defina o valor das despesas de supermercado
+4. Personalize as despesas de lazer:
+   - Adicione novas categorias conforme necessário
+   - Ajuste os valores e percentagens de divisão
+5. Escolha o método de divisão que melhor se adequa à sua situação
+6. Visualize o resultado detalhado da divisão de despesas
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Contribuindo
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Contribuições são bem-vindas! Sinta-se à vontade para abrir issues ou enviar pull requests.
 
-## Deploy on Vercel
+## Licença
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
-=======
-# calculadora-despesas
-Calculadora de despesas entre casais.
->>>>>>> ac10e60ee8703551390aaaceca30b0e905bfe379
+Este projeto está licenciado sob a [MIT License](LICENSE).
