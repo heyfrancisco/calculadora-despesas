@@ -1,58 +1,111 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 
-interface LeisureExpenses {
-  jantaresFora: number;
-  dateNight: number;
-  viagens: number;
-}
+const defaultFixedCategories = [
+  { name: "agua", value: 40 },
+  { name: "luz", value: 80 },
+  { name: "internet", value: 35 },
+  { name: "streaming", value: 25 },
+  { name: "condominio", value: 30 },
+];
 
-interface Share {
-  fixed: number;
-  leisure: LeisureExpenses;
-}
-
-interface Shares {
-  userShare: Share;
-  partnerShare: Share;
-}
+const defaultLeisureCategories = [
+  { name: "jantares_fora", value: 200, userPercentage: 50, partnerPercentage: 50 },
+  { name: "date_night", value: 100, userPercentage: 50, partnerPercentage: 50 },
+  { name: "viagens", value: 300, userPercentage: 55, partnerPercentage: 45 },
+];
 
 const ExpenseCalculator = () => {
-  const [fixedExpenses, setFixedExpenses] = useState({
-    agua: 40,
-    luz: 80,
-    internet: 35,
-    streaming: 25,
-    condominio: 30,
-  });
-
+  const [fixedCategories, setFixedCategories] = useState(defaultFixedCategories);
+  const [leisureCategories, setLeisureCategories] = useState(defaultLeisureCategories);
   const [groceries, setGroceries] = useState(400);
   const [salaryUser, setSalaryUser] = useState(2350);
   const [salaryPartner, setSalaryPartner] = useState(1900);
   const [selectedOption, setSelectedOption] = useState("proportional");
 
-  const [leisureExpenses, setLeisureExpenses] = useState({
-    jantaresFora: 200,
-    dateNight: 100,
-    viagens: 300,
-  });
+  useEffect(() => {
+    // Load categories from local storage on component mount
 
-  const [leisurePercentages, setLeisurePercentages] = useState({
-    jantaresFora: { user: 50, partner: 50 },
-    dateNight: { user: 50, partner: 50 },
-    viagens: { user: 55, partner: 45 },
-  });
+    // Retrieve the stored data from local storage
+    const storedFixedCategories = localStorage.getItem("fixedCategories");
+    const storedLeisureCategories = localStorage.getItem("leisureCategories");
 
-  const [newCategoryName, setNewCategoryName] = useState("");
-  const [dialogOpen, setDialogOpen] = useState(false);
+    // Check if fixedCategories data exists in local storage
+    if (storedFixedCategories) {
+      try {
+        // Parse the stored data from JSON string to an array
+        const parsedFixedCategories = JSON.parse(storedFixedCategories);
 
-  const totalFixedExpenses = Object.values(fixedExpenses).reduce((a, b) => a + b, 0);
-  const totalLeisureExpenses = Object.values(leisureExpenses).reduce((a, b) => a + b, 0);
+        // Validate that the parsed data is an array
+        if (Array.isArray(parsedFixedCategories)) {
+          // If the parsed data is an array, update the state with the retrieved categories
+          setFixedCategories(parsedFixedCategories);
+        }
+      } catch (error) {
+        // If an error occurs while parsing or validating the data, log the error
+        console.error("Error parsing fixedCategories from local storage:", error);
+      }
+    }
+
+    // Check if leisureCategories data exists in local storage
+    if (storedLeisureCategories) {
+      try {
+        // Parse the stored data from JSON string to an array
+        const parsedLeisureCategories = JSON.parse(storedLeisureCategories);
+
+        // Validate that the parsed data is an array
+        if (Array.isArray(parsedLeisureCategories)) {
+          // If the parsed data is an array, update the state with the retrieved categories
+          setLeisureCategories(parsedLeisureCategories);
+        }
+      } catch (error) {
+        // If an error occurs while parsing or validating the data, log the error
+        console.error("Error parsing leisureCategories from local storage:", error);
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    // Save categories to local storage whenever they change
+    localStorage.setItem("fixedCategories", JSON.stringify(fixedCategories));
+    localStorage.setItem("leisureCategories", JSON.stringify(leisureCategories));
+  }, [fixedCategories, leisureCategories]);
+
+  const formatCategoryName = (name: string) => {
+    return name
+      .split("_")
+      .map((word: string) => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(" ");
+  };
+
+  const addFixedCategory = (category: { name: string; value: number }) => {
+    setFixedCategories([...fixedCategories, category]);
+  };
+
+  const removeFixedCategory = (categoryName: string) => {
+    setFixedCategories(fixedCategories.filter((c) => c.name !== categoryName));
+  };
+
+  const addLeisureCategory = (category: {
+    name: string;
+    value: number;
+    userPercentage: number;
+    partnerPercentage: number;
+  }) => {
+    setLeisureCategories([...leisureCategories, category]);
+  };
+
+  const removeLeisureCategory = (categoryName: string) => {
+    setLeisureCategories(leisureCategories.filter((c) => c.name !== categoryName));
+  };
+
+  const totalFixedExpenses = fixedCategories.reduce((sum, category) => sum + category.value, 0);
+  const totalLeisureExpenses = leisureCategories.reduce((sum, category) => sum + category.value, 0);
   const totalMonthlyExpenses = totalFixedExpenses + groceries;
 
   const calculateProportional = () => {
@@ -62,20 +115,15 @@ const ExpenseCalculator = () => {
 
     const userShare = {
       fixed: totalMonthlyExpenses * userRatio,
-      leisure: {
-        jantaresFora: leisureExpenses.jantaresFora * (leisurePercentages.jantaresFora.user / 100),
-        dateNight: leisureExpenses.dateNight * (leisurePercentages.dateNight.user / 100),
-        viagens: leisureExpenses.viagens * (leisurePercentages.viagens.user / 100),
-      },
+      leisure: leisureCategories.reduce((sum, category) => sum + category.value * (category.userPercentage / 100), 0),
     };
 
     const partnerShare = {
       fixed: totalMonthlyExpenses * partnerRatio,
-      leisure: {
-        jantaresFora: leisureExpenses.jantaresFora * (leisurePercentages.jantaresFora.partner / 100),
-        dateNight: leisureExpenses.dateNight * (leisurePercentages.dateNight.partner / 100),
-        viagens: leisureExpenses.viagens * (leisurePercentages.viagens.partner / 100),
-      },
+      leisure: leisureCategories.reduce(
+        (sum, category) => sum + category.value * (category.partnerPercentage / 100),
+        0
+      ),
     };
 
     return { userShare, partnerShare };
@@ -84,47 +132,35 @@ const ExpenseCalculator = () => {
   const calculateFixed = () => {
     const userShare = {
       fixed: totalFixedExpenses + groceries / 2,
-      leisure: {
-        jantaresFora: leisureExpenses.jantaresFora * (leisurePercentages.jantaresFora.user / 100),
-        dateNight: leisureExpenses.dateNight * (leisurePercentages.dateNight.user / 100),
-        viagens: leisureExpenses.viagens * (leisurePercentages.viagens.user / 100),
-      },
+      leisure: leisureCategories.reduce((sum, category) => sum + category.value * (category.userPercentage / 100), 0),
     };
 
     const partnerShare = {
       fixed: groceries / 2,
-      leisure: {
-        jantaresFora: leisureExpenses.jantaresFora * (leisurePercentages.jantaresFora.partner / 100),
-        dateNight: leisureExpenses.dateNight * (leisurePercentages.dateNight.partner / 100),
-        viagens: leisureExpenses.viagens * (leisurePercentages.viagens.partner / 100),
-      },
+      leisure: leisureCategories.reduce(
+        (sum, category) => sum + category.value * (category.partnerPercentage / 100),
+        0
+      ),
     };
 
     return { userShare, partnerShare };
   };
 
-  const calculateUserAll = () => {
-    return {
-      userShare: {
-        fixed: totalMonthlyExpenses,
-        leisure: {
-          jantaresFora: leisureExpenses.jantaresFora * (leisurePercentages.jantaresFora.user / 100),
-          dateNight: leisureExpenses.dateNight * (leisurePercentages.dateNight.user / 100),
-          viagens: leisureExpenses.viagens * (leisurePercentages.viagens.user / 100),
-        },
-      },
-      partnerShare: {
-        fixed: 0,
-        leisure: {
-          jantaresFora: leisureExpenses.jantaresFora * (leisurePercentages.jantaresFora.partner / 100),
-          dateNight: leisureExpenses.dateNight * (leisurePercentages.dateNight.partner / 100),
-          viagens: leisureExpenses.viagens * (leisurePercentages.viagens.partner / 100),
-        },
-      },
-    };
-  };
+  const calculateUserAll = () => ({
+    userShare: {
+      fixed: totalMonthlyExpenses,
+      leisure: leisureCategories.reduce((sum, category) => sum + category.value * (category.userPercentage / 100), 0),
+    },
+    partnerShare: {
+      fixed: 0,
+      leisure: leisureCategories.reduce(
+        (sum, category) => sum + category.value * (category.partnerPercentage / 100),
+        0
+      ),
+    },
+  });
 
-  const getShares = (): Shares => {
+  const getShares = () => {
     switch (selectedOption) {
       case "proportional":
         return calculateProportional();
@@ -136,300 +172,349 @@ const ExpenseCalculator = () => {
         return {
           userShare: {
             fixed: 0,
-            leisure: { jantaresFora: 0, dateNight: 0, viagens: 0 },
+            leisure: 0,
           },
           partnerShare: {
             fixed: 0,
-            leisure: { jantaresFora: 0, dateNight: 0, viagens: 0 },
+            leisure: 0,
           },
         };
     }
   };
 
-  const shares = getShares();
+  const { userShare, partnerShare } = getShares();
 
-  const totalUserLeisure = Object.values(shares.userShare.leisure).reduce((a, b) => a + b, 0);
-  const totalPartnerLeisure = Object.values(shares.partnerShare.leisure).reduce((a, b) => a + b, 0);
-
-  const handlePercentageChange = (
-    expense: keyof typeof leisurePercentages,
-    person: "user" | "partner",
-    value: number
-  ) => {
-    const otherPerson = person === "user" ? "partner" : "user";
-    setLeisurePercentages((prev) => ({
-      ...prev,
-      [expense]: {
-        [person]: value,
-        [otherPerson]: 100 - value,
-      },
-    }));
-  };
-
-  const addLeisureCategory = () => {
-    if (newCategoryName.trim()) {
-      const formattedCategory = newCategoryName.trim().toLowerCase().replace(/\s+/g, "_");
-
-      setLeisureExpenses((prev) => ({
-        ...prev,
-        [formattedCategory]: 0,
-      }));
-
-      setLeisurePercentages((prev) => ({
-        ...prev,
-        [formattedCategory]: { user: 50, partner: 50 },
-      }));
-
-      setNewCategoryName("");
-      setDialogOpen(false);
-    }
-  };
-
-  const removeLeisureCategory = (category: string) => {
-    setLeisureExpenses((prev) => {
-      const newExpenses = { ...prev };
-      delete newExpenses[category];
-      return newExpenses;
+  const handlePercentageChange = (categoryName: any, person: any, value: any) => {
+    const updatedCategories = leisureCategories.map((category) => {
+      if (category.name === categoryName) {
+        return {
+          ...category,
+          userPercentage: person === "user" ? value : 100 - value,
+          partnerPercentage: person === "partner" ? value : 100 - value,
+        };
+      }
+      return category;
     });
 
-    setLeisurePercentages((prev) => {
-      const newPercentages = { ...prev };
-      delete newPercentages[category];
-      return newPercentages;
-    });
+    setLeisureCategories(updatedCategories);
   };
 
   return (
-    <Card className="w-full max-w-6xl p-6 mx-auto my-8">
+    <Card className="w-full max-w-6xl p-8 mx-auto my-8 bg-white shadow-lg">
       <CardContent>
-        <div className="grid grid-cols-2 gap-8">
-          <div className="space-y-6">
-            <div className="space-y-6">
-              <div>
-                <h3 className="font-semibold mb-2">Rendimentos Mensais</h3>
-                <div className="space-y-2">
-                  <div>
-                    <label className="block text-sm">Seu Salário:</label>
-                    <input
-                      type="number"
-                      value={salaryUser}
-                      onChange={(e) => setSalaryUser(Number(e.target.value))}
-                      className="border rounded p-2 w-full"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm">Salário Namorada:</label>
-                    <input
-                      type="number"
-                      value={salaryPartner}
-                      onChange={(e) => setSalaryPartner(Number(e.target.value))}
-                      className="border rounded p-2 w-full"
-                    />
-                  </div>
+        <div className="grid grid-cols-2 gap-12">
+          <div className="space-y-8">
+            {/* Rendimentos Mensais */}
+            <div>
+              <h3 className="text-2xl font-bold mb-4">💰 Rendimentos Mensais</h3>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-base mb-2">👤 Seu Salário:</label>
+                  <input
+                    type="number"
+                    value={salaryUser}
+                    onChange={(e) => setSalaryUser(Number(e.target.value))}
+                    className="border rounded-lg p-3 w-full text-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+                <div>
+                  <label className="block text-base mb-2">👩 Salário Namorada:</label>
+                  <input
+                    type="number"
+                    value={salaryPartner}
+                    onChange={(e) => setSalaryPartner(Number(e.target.value))}
+                    className="border rounded-lg p-3 w-full text-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
                 </div>
               </div>
+            </div>
 
-              <div>
-                <h3 className="font-semibold mb-2">Despesas Mensais Fixas</h3>
-                {Object.entries(fixedExpenses).map(([key, value]) => (
-                  <div key={key} className="mb-2">
-                    <label className="block text-sm capitalize">{key}:</label>
-                    <input
-                      type="number"
-                      value={value}
-                      onChange={(e) => setFixedExpenses({ ...fixedExpenses, [key]: Number(e.target.value) })}
-                      className="border rounded p-2 w-full"
-                    />
-                  </div>
-                ))}
-              </div>
-
-              <div>
-                <label className="block text-sm">Despesas Supermercado:</label>
-                <input
-                  type="number"
-                  value={groceries}
-                  onChange={(e) => setGroceries(Number(e.target.value))}
-                  className="border rounded p-2 w-full"
-                />
-              </div>
-
-              <div>
-                <div className="flex justify-between items-center mb-2">
-                  <h3 className="font-semibold">Despesas de Lazer</h3>
-                  <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-                    <DialogTrigger asChild>
-                      <Button variant="default" size="sm" className="px-3 py-1 text-sm">
-                        + Adicionar Categoria
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent className="sm:max-w-[425px]">
-                      <DialogHeader>
-                        <DialogTitle>Adicionar Nova Categoria de Lazer</DialogTitle>
-                      </DialogHeader>
-                      <div className="grid gap-4 py-4">
-                        <div className="space-y-2">
-                          <Input
-                            id="name"
-                            placeholder="Nome da categoria"
-                            value={newCategoryName}
-                            onChange={(e) => setNewCategoryName(e.target.value)}
-                            onKeyDown={(e) => {
-                              if (e.key === "Enter") {
-                                addLeisureCategory();
+            {/* Despesas Mensais Fixas */}
+            <div>
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-2xl font-bold">📊 Despesas Mensais Fixas</h3>
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <Button
+                      variant="default"
+                      className="rounded-full px-6 py-2 text-base font-medium bg-black hover:bg-gray-800"
+                    >
+                      <span className="mr-2">+</span>
+                      Adicionar Categoria
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="sm:max-w-[425px]">
+                    <DialogHeader>
+                      <DialogTitle>Adicionar Nova Categoria</DialogTitle>
+                    </DialogHeader>
+                    <div className="grid gap-4 py-4">
+                      <div className="space-y-2">
+                        <Input
+                          id="name"
+                          placeholder="Nome da categoria"
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              const name = e.currentTarget.value.trim();
+                              if (name) {
+                                addFixedCategory({ name, value: 0 });
+                                e.currentTarget.value = "";
                               }
-                            }}
-                          />
-                        </div>
-                        <div className="flex justify-end">
-                          <Button type="submit" onClick={addLeisureCategory} disabled={!newCategoryName.trim()}>
-                            Adicionar
-                          </Button>
-                        </div>
+                            }
+                          }}
+                        />
                       </div>
-                    </DialogContent>
-                  </Dialog>
-                </div>
-                <p className="text-sm text-gray-600 mb-4">
-                  Use os controles deslizantes para ajustar a percentagem que cada pessoa paga nas despesas de lazer.
-                  Por exemplo, 60%/40% significa que você paga 60% e sua namorada paga 40% dessa despesa.
-                </p>
-                {Object.entries(leisureExpenses).map(([key, value]) => (
-                  <div key={key} className="mb-4">
-                    <div className="flex justify-between items-center mb-1">
-                      <label className="block text-sm capitalize">{key.replace(/_/g, " ")}:</label>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+              </div>
+              <p className="text-gray-600 mb-8 text-base">
+                Para as despesas mensais fixas, você pode definir um valor para cada categoria de despesa, como água,
+                luz, internet, etc. Esses valores serão usados para calcular o total de despesas mensais e, dependendo
+                do método de divisão escolhido, determinar a parte que cada pessoa pagará.
+              </p>
+              <div className="space-y-4">
+                {fixedCategories.map((category) => (
+                  <div key={category.name} className="bg-white rounded-lg p-4 shadow-sm">
+                    <div className="flex justify-between items-center mb-2">
+                      <label className="block text-base capitalize">{category.name}:</label>
                       <button
-                        onClick={() => removeLeisureCategory(key)}
-                        className="text-red-500 hover:text-red-700 text-sm"
+                        onClick={() => removeFixedCategory(category.name)}
+                        className="text-gray-400 hover:text-red-500 transition-colors"
                         title="Remover categoria"
                       >
                         ✕
                       </button>
                     </div>
-                    <div className="grid grid-cols-2 gap-4 mb-2">
-                      <input
-                        type="number"
-                        value={value}
-                        onChange={(e) => setLeisureExpenses({ ...leisureExpenses, [key]: Number(e.target.value) })}
-                        className="border rounded p-2 w-full"
-                      />
-                      <div className="flex items-center gap-2">
-                        <input
-                          type="range"
-                          min="0"
-                          max="100"
-                          value={leisurePercentages[key as keyof typeof leisurePercentages].user}
-                          onChange={(e) =>
-                            handlePercentageChange(
-                              key as keyof typeof leisurePercentages,
-                              "user",
-                              Number(e.target.value)
-                            )
-                          }
-                          className="w-full"
-                        />
-                        <span className="text-sm w-16">
-                          {leisurePercentages[key as keyof typeof leisurePercentages].user}% /{" "}
-                          {leisurePercentages[key as keyof typeof leisurePercentages].partner}%
-                        </span>
-                      </div>
-                    </div>
+                    <input
+                      type="number"
+                      value={category.value}
+                      onChange={(e) =>
+                        setFixedCategories(
+                          fixedCategories.map((c) =>
+                            c.name === category.name ? { ...c, value: Number(e.target.value) } : c
+                          )
+                        )
+                      }
+                      className="border rounded-lg p-3 w-full text-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
                   </div>
                 ))}
               </div>
             </div>
+
+            {/* Despesas Supermercado */}
+            <div>
+              <h3 className="text-2xl font-bold mb-4">🛒 Despesas Supermercado</h3>
+              <p className="text-gray-600 mb-8 text-base">
+                Para as despesas de supermercado, insira o valor total gasto mensalmente em compras de supermercado.
+                Esse valor será usado no cálculo da divisão das despesas, dependendo do método escolhido.
+              </p>
+              <div className="bg-white rounded-lg p-4 shadow-sm">
+                <input
+                  type="number"
+                  value={groceries}
+                  onChange={(e) => setGroceries(Number(e.target.value))}
+                  className="border rounded-lg p-3 w-full text-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+            </div>
+
+            {/* Despesas de Lazer */}
+            <div>
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-2xl font-bold">🎉 Despesas de Lazer</h3>
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <Button
+                      variant="default"
+                      className="rounded-full px-6 py-2 text-base font-medium bg-black hover:bg-gray-800"
+                    >
+                      <span className="mr-2">+</span>
+                      Adicionar Categoria
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="sm:max-w-[425px]">
+                    <DialogHeader>
+                      <DialogTitle>Adicionar Nova Categoria de Lazer</DialogTitle>
+                    </DialogHeader>
+                    <div className="grid gap-4 py-4">
+                      <div className="space-y-2">
+                        <Input
+                          id="name"
+                          placeholder="Nome da categoria"
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              const name = e.currentTarget.value.trim();
+                              if (name) {
+                                addLeisureCategory({
+                                  name,
+                                  value: 0,
+                                  userPercentage: 50,
+                                  partnerPercentage: 50,
+                                });
+                                e.currentTarget.value = "";
+                              }
+                            }
+                          }}
+                        />
+                      </div>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+              </div>
+              <p className="text-gray-600 mb-8 text-base">
+                Use os controles deslizantes para ajustar a percentagem que cada pessoa paga nas despesas de lazer. Por
+                exemplo, 60%/40% significa que você paga 60% e sua namorada paga 40% dessa despesa.
+              </p>
+              {leisureCategories.map((category) => (
+                <div key={category.name} className="mb-6 bg-white rounded-lg p-4 shadow-sm">
+                  <div className="flex justify-between items-center mb-3">
+                    <label className="font-medium capitalize">{formatCategoryName(category.name)}:</label>
+                    <button
+                      onClick={() => removeLeisureCategory(category.name)}
+                      className="text-gray-400 hover:text-red-500 transition-colors"
+                      title="Remover categoria"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-2 gap-6 items-center">
+                    <input
+                      type="number"
+                      value={category.value}
+                      onChange={(e) =>
+                        setLeisureCategories(
+                          leisureCategories.map((c) =>
+                            c.name === category.name ? { ...c, value: Number(e.target.value) } : c
+                          )
+                        )
+                      }
+                      className="border rounded-lg p-3 w-full text-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                    <div className="flex items-center gap-4">
+                      <input
+                        type="range"
+                        min="0"
+                        max="100"
+                        value={category.userPercentage}
+                        onChange={(e) => handlePercentageChange(category.name, "user", Number(e.target.value))}
+                        className="flex-1 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-black"
+                      />
+
+                      <span className="text-base font-medium min-w-[80px] text-right">
+                        {category.userPercentage}% / {category.partnerPercentage}%
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
 
-          <div className="space-y-6">
+          <div className="space-y-8">
+            {/* Método de Divisão */}
             <div>
-              <h3 className="font-semibold mb-2">Método de Divisão</h3>
+              <h3 className="text-2xl font-bold mb-4">⚖️ Método de Divisão</h3>
               <select
                 value={selectedOption}
                 onChange={(e) => setSelectedOption(e.target.value)}
-                className="border rounded p-2 w-full"
+                className="border rounded-lg p-3 w-full text-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
               >
                 <option value="proportional">Proporcional aos Rendimentos</option>
                 <option value="fixed">Fixos (Você) + Supermercado (50/50)</option>
                 <option value="userAll">Você Paga Tudo</option>
               </select>
 
-              <div className="mt-4 text-sm text-gray-600">
+              <div className="mt-6 p-4 bg-gray-50 rounded-lg">
                 {selectedOption === "proportional" && (
-                  <div className="space-y-2">
-                    <p>• Considerando salários: Você (≈2350€) e sua namorada (≈1900€)</p>
-                    <p>• As despesas são divididas proporcionalmente à renda de cada um</p>
-                    <p>• Mais justo considerando a diferença salarial</p>
+                  <div className="space-y-3">
+                    <p className="text-base text-gray-600">
+                      • Considerando salários: Você (≈{salaryUser}€) e sua namorada (≈{salaryPartner}€)
+                    </p>
+                    <p className="text-base text-gray-600">
+                      • As despesas são divididas proporcionalmente à renda de cada um
+                    </p>
+                    <p className="text-base text-gray-600">• Mais justo considerando a diferença salarial</p>
                   </div>
                 )}
                 {selectedOption === "fixed" && (
-                  <div className="space-y-2">
-                    <p>• Você assume todas as despesas fixas (água, luz, internet, etc.)</p>
-                    <p>• Despesas de supermercado divididas igualmente</p>
-                    <p>• Compensa o investimento inicial da sua namorada na casa</p>
+                  <div className="space-y-3">
+                    <p className="text-base text-gray-600">
+                      • Você assume todas as despesas fixas (água, luz, internet, etc.)
+                    </p>
+                    <p className="text-base text-gray-600">• Despesas de supermercado divididas igualmente</p>
+                    <p className="text-base text-gray-600">• Compensa o investimento inicial da sua namorada na casa</p>
                   </div>
                 )}
                 {selectedOption === "userAll" && (
-                  <div className="space-y-2">
-                    <p>• Assume todas as despesas mensais</p>
-                    <p>• Compensa o investimento significativo da sua namorada/família na casa e móveis</p>
+                  <div className="space-y-3">
+                    <p className="text-base text-gray-600">• Assume todas as despesas mensais</p>
+                    <p className="text-base text-gray-600">
+                      • Compensa o investimento significativo da sua namorada/família na casa e móveis
+                    </p>
                   </div>
                 )}
               </div>
             </div>
 
-            <div className="bg-gray-50 p-4 rounded-lg space-y-4">
-              <h3 className="font-semibold">Resultado Mensal</h3>
+            {/* Resultado Mensal */}
+            <div className="bg-gray-50 p-6 rounded-lg space-y-6">
+              <h3 className="text-2xl font-bold">📝 Resultado Mensal</h3>
 
-              <div>
-                <h4 className="font-medium mb-2">Despesas Fixas</h4>
-                <div className="grid grid-cols-2 gap-4">
+              <div className="bg-white p-4 rounded-lg">
+                <h4 className="text-lg font-semibold mb-3">💸 Despesas Fixas</h4>
+                <div className="grid grid-cols-2 gap-6">
                   <div>
-                    <p className="text-sm">Sua Parte:</p>
-                    <p className="text-lg font-semibold">{shares.userShare.fixed.toFixed(2)}€</p>
+                    <p className="text-base text-gray-600">Sua Parte:</p>
+                    <p className="text-2xl font-bold">{userShare.fixed.toFixed(2)}€</p>
                   </div>
                   <div>
-                    <p className="text-sm">Parte da Namorada:</p>
-                    <p className="text-lg font-semibold">{shares.partnerShare.fixed.toFixed(2)}€</p>
+                    <p className="text-base text-gray-600">Parte da Namorada:</p>
+                    <p className="text-2xl font-bold">{partnerShare.fixed.toFixed(2)}€</p>
                   </div>
                 </div>
               </div>
 
-              <div>
-                <h4 className="font-medium mb-2">Despesas de Lazer</h4>
-                <div className="grid grid-cols-2 gap-4">
+              <div className="bg-white p-4 rounded-lg">
+                <h4 className="text-lg font-semibold mb-3">🎯 Despesas de Lazer</h4>
+                <div className="grid grid-cols-2 gap-6">
                   <div>
-                    <p className="text-sm">Sua Parte:</p>
-                    <p className="text-lg font-semibold">{totalUserLeisure.toFixed(2)}€</p>
-                    <div className="text-xs text-gray-500 mt-1">
-                      <p>Jantares: {shares.userShare.leisure.jantaresFora.toFixed(2)}€</p>
-                      <p>Date Night: {shares.userShare.leisure.dateNight.toFixed(2)}€</p>
-                      <p>Viagens: {shares.userShare.leisure.viagens.toFixed(2)}€</p>
+                    <p className="text-base text-gray-600">Sua Parte:</p>
+                    <p className="text-2xl font-bold">{userShare.leisure.toFixed(2)}€</p>
+                    <div className="mt-2 space-y-1">
+                      {leisureCategories.map((category) => (
+                        <p key={category.name} className="text-sm text-gray-500">
+                          {formatCategoryName(category.name)}:{" "}
+                          {((category.value * category.userPercentage) / 100).toFixed(2)}€
+                        </p>
+                      ))}
                     </div>
                   </div>
                   <div>
-                    <p className="text-sm">Parte da Namorada:</p>
-                    <p className="text-lg font-semibold">{totalPartnerLeisure.toFixed(2)}€</p>
-                    <div className="text-xs text-gray-500 mt-1">
-                      <p>Jantares: {shares.partnerShare.leisure.jantaresFora.toFixed(2)}€</p>
-                      <p>Date Night: {shares.partnerShare.leisure.dateNight.toFixed(2)}€</p>
-                      <p>Viagens: {shares.partnerShare.leisure.viagens.toFixed(2)}€</p>
+                    <p className="text-base text-gray-600">Parte da Namorada:</p>
+                    <p className="text-2xl font-bold">{partnerShare.leisure.toFixed(2)}€</p>
+                    <div className="mt-2 space-y-1">
+                      {leisureCategories.map((category) => (
+                        <p key={category.name} className="text-sm text-gray-500">
+                          {formatCategoryName(category.name)}:{" "}
+                          {((category.value * category.partnerPercentage) / 100).toFixed(2)}€
+                        </p>
+                      ))}
                     </div>
                   </div>
                 </div>
               </div>
 
-              <div>
-                <h4 className="font-medium mb-2">Total Mensal</h4>
-                <div className="grid grid-cols-2 gap-4">
+              <div className="bg-white p-4 rounded-lg">
+                <h4 className="text-lg font-semibold mb-3">🧮 Total Mensal</h4>
+                <div className="grid grid-cols-2 gap-6">
                   <div>
-                    <p className="text-sm">Sua Parte Total:</p>
-                    <p className="text-lg font-semibold">{(shares.userShare.fixed + totalUserLeisure).toFixed(2)}€</p>
+                    <p className="text-base text-gray-600">Sua Parte Total:</p>
+                    <p className="text-2xl font-bold">{(userShare.fixed + userShare.leisure).toFixed(2)}€</p>
                   </div>
                   <div>
-                    <p className="text-sm">Parte Total da Namorada:</p>
-                    <p className="text-lg font-semibold">
-                      {(shares.partnerShare.fixed + totalPartnerLeisure).toFixed(2)}€
-                    </p>
+                    <p className="text-base text-gray-600">Parte Total da Namorada:</p>
+                    <p className="text-2xl font-bold">{(partnerShare.fixed + partnerShare.leisure).toFixed(2)}€</p>
                   </div>
                 </div>
               </div>
